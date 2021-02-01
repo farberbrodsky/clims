@@ -4,7 +4,6 @@ import json
 from sys import exit
 from pathlib import Path
 from appdirs import AppDirs
-from urllib import parse as urlparse
 import api
 
 # Read authentication data
@@ -25,18 +24,7 @@ else:
         auth_data = json.load(f)
 
 def fetch_cli(args):
-    url = urlparse.urlparse(args.url)
-    query = urlparse.parse_qs(url.query)
-    query["id"] = 215064114
-    encoded_queries = urlparse.urlencode(query)
-    print(url.scheme, url.netloc, url.path, encoded_queries)
-    final_url = urlparse.urlunparse((url.scheme, url.netloc, url.path, '', encoded_queries, ''))
-    try:
-        sess = api.login(auth_data["username"], auth_data["id"], auth_data["password"])
-    except ConnectionRefusedError:
-        print("Login failed.")
-        exit(1)
-    print(sess.get(final_url).text)
+    print(api.login_and_fetch_or_exit(args.url, auth_data))
 
 # Parse arguments
 
