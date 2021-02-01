@@ -14,7 +14,7 @@ def login(username, my_id, password):
 def login_and_fetch_or_exit(raw_url, auth_data):
     url = urlparse.urlparse(raw_url)
     query = urlparse.parse_qs(url.query)
-    query["id"] = 215064114
+    query["id"] = auth_data["id"]
     encoded_queries = urlparse.urlencode(query)
     final_url = urlparse.urlunparse((url.scheme, url.netloc, url.path, '', encoded_queries, ''))
     try:
