@@ -44,6 +44,7 @@ parser_fetch.set_defaults(function=fetch_cli)
 
 parser_scans_list = subparsers.add_parser(
     "scans-list", help="List your scans.")
+parser_scans_list.add_argument("semester", help="Semester for query.")
 parser_scans_list.set_defaults(function=scans_list_cli)
 
 args = my_parser.parse_args()

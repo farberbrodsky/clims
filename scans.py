@@ -3,7 +3,7 @@ import re
 from bs4 import BeautifulSoup
 from util import parse_table
 
-my_re = re.compile(r'<tr.+>.+<\/tr')
+my_re = re.compile("<tr.*?</tr>")
 
 def scans_list_cli(args, auth_data):
     html = api.login_and_fetch_or_exit("/Tal/Scans/Scans_P.aspx?first=yes", auth_data)
@@ -23,15 +23,16 @@ def scans_list_cli(args, auth_data):
                 "javas": 1,
                 "peula": 3,
                 "caller": "scans_p",
-                "sem": "20201",
-                "currsem": "20201"
+                "sem": args.semester,
+                "currsem": args.semester
             }).text
             # Get the lines inside of it
-            matches = [x + '>' for x in my_re.findall(result)[2:]]
+            matches = [x + '>' for x in my_re.findall(result)[1:]]
             for match in matches:
                 soup2 = BeautifulSoup(match, features="lxml")
-                tds = [x.text.replace("\xa0", "") for x in soup2.select("td")]
-                status = tds[0]
-                course = tds[2]
-                printed_result.append({"status": status, "course": course})
+                if soup2.find("tr").attrs.get("style") == "text-align:center":
+                    tds = [x.text.replace("\xa0", "") for x in soup2.select("td")]
+                    status = tds[0]
+                    course = tds[2]
+                    printed_result.append({"status": status, "course": course})
     print(printed_result)
