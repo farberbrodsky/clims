@@ -26,7 +26,10 @@ def login(auth_data):
     return s
 
 
-def login_or_cached(auth_data, cache_path):
+sess_file = Path(AppDirs("clims").user_config_dir) / "cached_session"
+
+
+def login_or_cached(auth_data, cache_path=sess_file):
     """Tries to use a cached session, if it's from the last hour"""
     time = timestamp()
     try:
@@ -63,15 +66,12 @@ def format_url(raw_url, auth_data):
     encoded_queries = urlparse.urlencode(query)
     final_url = urlparse.urlunparse(
         (url.scheme or "https",
-         url.netloc or "ims.tau.ac.il",
+         url.netloc or "www.ims.tau.ac.il",
          url.path,
          '',
          encoded_queries,
          ''))
     return final_url
-
-
-sess_file = Path(AppDirs("clims").user_config_dir) / "cached_session"
 
 
 def login_and_fetch_or_exit(raw_url, auth_data):
