@@ -6,13 +6,13 @@ from appdirs import AppDirs
 from pathlib import Path
 
 
-def login(username, my_id, password):
+def login(auth_data):
     """Returns a Requests session which is logged in. Raises ConnectionRefusedError if login info is incorrect."""
     s = requests.Session()
     data = {
-        "txtUser": username,
-        "txtId": my_id,
-        "txtPass": password,
+        "txtUser": auth_data["username"],
+        "txtId": auth_data["id"],
+        "txtPass": auth_data["password"],
         "enter": "כניסה",
         "javas": "1",
         "src": ""
@@ -26,26 +26,29 @@ def login(username, my_id, password):
     return s
 
 
-def login_or_cached(username, my_id, password, cache_path):
+def login_or_cached(auth_data, cache_path):
     """Tries to use a cached session, if it's from the last hour"""
     time = timestamp()
-    with open(cache_path, "rb") as f:
-        pickled_data = pickle.load(f)
-        if pickled_data["username"] == username and \
-            pickled_data["id"] == my_id and \
-                pickled_data["password"] == password and \
-                pickled_data["time"] > (time - 3600):
-            # From the last hour, and is of the same parameters
-            session = requests.Session()
-            session.cookies.update(pickled_data["cookies"])
-            return session
+    try:
+        with open(cache_path, "rb") as f:
+            pickled_data = pickle.load(f)
+            if pickled_data["username"] == auth_data["username"] and \
+                pickled_data["id"] == auth_data["id"] and \
+                    pickled_data["password"] == auth_data["password"] and \
+                    pickled_data["time"] > (time - 3600):
+                # From the last hour, and is of the same parameters
+                session = requests.Session()
+                session.cookies.update(pickled_data["cookies"])
+                return session
+    except FileNotFoundError:
+        pass
     # Save a new session to the cache
-    new_session = login(username, my_id, password)
+    new_session = login(auth_data)
     with open(cache_path, "wb") as f:
         data = {
-            "username": username,
-            "id": my_id,
-            "password": password,
+            "username": auth_data["username"],
+            "id": auth_data["id"],
+            "password": auth_data["password"],
             "time": time,
             "cookies": new_session.cookies
         }
@@ -53,23 +56,28 @@ def login_or_cached(username, my_id, password, cache_path):
     return new_session
 
 
+def format_url(raw_url, auth_data):
+    url = urlparse.urlparse(raw_url)
+    query = urlparse.parse_qsl(url.query)
+    query.append(("id", auth_data["id"]))
+    encoded_queries = urlparse.urlencode(query)
+    final_url = urlparse.urlunparse(
+        (url.scheme or "https",
+         url.netloc or "ims.tau.ac.il",
+         url.path,
+         '',
+         encoded_queries,
+         ''))
+    return final_url
+
+
 sess_file = Path(AppDirs("clims").user_config_dir) / "cached_session"
 
 
 def login_and_fetch_or_exit(raw_url, auth_data):
-    url = urlparse.urlparse(raw_url)
-    query = urlparse.parse_qs(url.query)
-    query["id"] = auth_data["id"]
-    encoded_queries = urlparse.urlencode(query)
-    final_url = urlparse.urlunparse(
-        (url.scheme, url.netloc, url.path, '', encoded_queries, ''))
+    final_url = format_url(raw_url, auth_data)
     try:
-        sess = login_or_cached(
-            auth_data["username"],
-            auth_data["id"],
-            auth_data["password"],
-            sess_file
-        )
+        sess = login_or_cached(auth_data, sess_file)
     except ConnectionRefusedError:
         print("Login failed.")
         exit(1)
